@@ -1,0 +1,433 @@
+/*
+REQUIRED GEE IMPORTS
+
+sent2  = Sentinel-2 MSI Level-1C ImageCollection
+points = MultiPoint containing study area reference points
+park1  = Placeholder study park polygon
+
+Additional park polygons to be added later.
+*/
+Map.setCenter(-104.8214, 38.8339, 10);
+//Define the image collection date and filter to only get images in the date range of interest
+//Three months to allow for cloud and smoke mitigation
+var image21 = sent2.filterDate("2021-06-01", "2021-08-30")
+//Set the collection parameters
+//Used median to get the same box throught out all years
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+//Repeat for desired years
+var image22 = sent2.filterDate("2022-06-01", "2022-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+var image23 = sent2.filterDate("2023-06-01", "2023-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+var image24 = sent2.filterDate("2024-06-01", "2024-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+var image25 = sent2.filterDate("2025-06-01", "2025-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+var image26 = sent2.filterDate("2026-06-01", "2026-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+print("A Sentinel-2 scene", image21);
+print("A Sentinel-2 scene", image22);
+print("A Sentinel-2 scene", image23);
+print("A Sentinel-2 scene", image24);
+print("A Sentinel-2 scene", image25);
+print("A Sentinel-2 scene", image26);
+//Make indicies map for each year.  (B4 Red  and B8 NIR for NDVI) (B8 NIR and B11 SWIR for NDMI)
+var trueColour = {
+bands: ["B4", "B8", "B11"],
+min: 0,
+max: 3000
+};
+Map.addLayer(image21, trueColour, "Indicies 21");
+Map.addLayer(image22, trueColour, "Indicies 22");
+Map.addLayer(image23, trueColour, "Indicies 23");
+Map.addLayer(image24, trueColour, "Indicies 24");
+Map.addLayer(image25, trueColour, "Indicies 25");
+Map.addLayer(image26, trueColour, "Indicies 26");
+//Compute the Normalized Difference Vegetation Index (NDVI)
+var nir21 = image21.select('B8');
+var red21 = image21.select('B4');
+var nir22 = image22.select('B8');
+var red22 = image22.select('B4');
+var nir23 = image23.select('B8');
+var red23 = image23.select('B4');
+var nir24 = image24.select('B8');
+var red24 = image24.select('B4');
+var nir25 = image25.select('B8');
+var red25 = image25.select('B4');
+var nir26 = image26.select('B8');
+var red26 = image26.select('B4');
+//Input the equation for NDVI
+var ndvi21 = nir21.subtract(red21).divide(nir21.add(red21)).rename('NDVI21');
+var ndvi22 = nir22.subtract(red22).divide(nir22.add(red22)).rename('NDVI22');
+var ndvi23 = nir23.subtract(red23).divide(nir23.add(red23)).rename('NDVI23');
+var ndvi24 = nir24.subtract(red24).divide(nir24.add(red24)).rename('NDVI24');
+var ndvi25 = nir25.subtract(red25).divide(nir25.add(red25)).rename('NDVI25');
+var ndvi26 = nir26.subtract(red26).divide(nir26.add(red26)).rename('NDVI26');
+// Display the result and customize color palette for display
+var ndviParams = {min: -1, max: 1, palette: ['blue', 'white', 'green']};
+Map.addLayer(ndvi21, ndviParams, 'NDVI21');
+Map.addLayer(ndvi22, ndviParams, 'NDVI22');
+Map.addLayer(ndvi23, ndviParams, 'NDVI23');
+Map.addLayer(ndvi24, ndviParams, 'NDVI24');
+Map.addLayer(ndvi25, ndviParams, 'NDVI25');
+Map.addLayer(ndvi26, ndviParams, 'NDVI26');
+print('NDVI21');
+print('NDVI22');
+print('NDVI23');
+print('NDVI24');
+print('NDVI25');
+print('NDVI26');
+//CALCULATE THE DIFFERENCE BETWEEN NDVIs (We will start with 21 and 26)
+// Perform image differencing (image2 - image1)
+// Calculate the difference for each corresponding band
+var ndvidifference = ndvi26.subtract(ndvi21);
+// Define visualization parameters for the difference image
+// Adjust min/max values and palette based on the expected range of change
+var visParams = 
+{min: -1.0, //Negative values for decrease.
+max: 1.0, //Positive values for increase.
+palette: ['red', 'white', 'green']//Red for decrease, green for increase.
+};
+//Add the difference image to the map.
+Map.addLayer(ndvidifference, visParams, 'NDVI Diffenence');
+//Create a histogram NDVI difference values.
+//add a seperate hist for each park
+var ndvihist1 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 1', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist1);
+var ndvihist2 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 2', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist2);
+var ndvihist3 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 3', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist3);
+var ndvihist4 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 4', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist4);
+var ndvihist5 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 5', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist5);
+var ndvihist6 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 6', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist6);
+// Calculate zonal statistics, specifically the mean and standard deviation, for the parks.
+// Define what you want to calculate, in this case mean and standard deviation.
+var zonalAOI = ee.Reducer.mean().combine({reducer2: ee.Reducer.stdDev(), sharedInputs: true});
+//Make collection of all parks for zonal statistics. (****Add other parks when ready****)
+var parks = ee.FeatureCollection([
+  ee.Feature(park1, {ParkName: 'Park 1'}),
+]);
+//Define the image collection date and filter to only get images in the date range of interest
+//Three months to allow for cloud and smoke mitigation
+var image21 = sent2.filterDate("2021-06-01", "2021-08-30")
+//Set the collection parameters
+//Used median to get the same box throught out all years
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+//Repeat for desired years
+var image22 = sent2.filterDate("2022-06-01", "2022-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+var image23 = sent2.filterDate("2023-06-01", "2023-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+var image24 = sent2.filterDate("2024-06-01", "2024-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+var image25 = sent2.filterDate("2025-06-01", "2025-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+var image26 = sent2.filterDate("2026-06-01", "2026-08-30")
+.filterBounds(points)
+.sort("CLOUD_COVERAGE_ASSESSMENT")
+.median();
+print("A Sentinel-2 scene", image21);
+print("A Sentinel-2 scene", image22);
+print("A Sentinel-2 scene", image23);
+print("A Sentinel-2 scene", image24);
+print("A Sentinel-2 scene", image25);
+print("A Sentinel-2 scene", image26);
+//Make indicies map for each year.  (B4 Red  and B8 NIR for NDVI) (B8 NIR and B11 SWIR for NDMI)
+var trueColour = {
+bands: ["B4", "B8", "B11"],
+min: 0,
+max: 3000
+};
+Map.addLayer(image21, trueColour, "Indicies 21");
+Map.addLayer(image22, trueColour, "Indicies 22");
+Map.addLayer(image23, trueColour, "Indicies 23");
+Map.addLayer(image24, trueColour, "Indicies 24");
+Map.addLayer(image25, trueColour, "Indicies 25");
+Map.addLayer(image26, trueColour, "Indicies 26");
+//Compute the Normalized Difference Vegetation Index (NDVI)
+var nir21 = image21.select('B8');
+var red21 = image21.select('B4');
+var nir22 = image22.select('B8');
+var red22 = image22.select('B4');
+var nir23 = image23.select('B8');
+var red23 = image23.select('B4');
+var nir24 = image24.select('B8');
+var red24 = image24.select('B4');
+var nir25 = image25.select('B8');
+var red25 = image25.select('B4');
+var nir26 = image26.select('B8');
+var red26 = image26.select('B4');
+//Input the equation for NDVI
+var ndvi21 = nir21.subtract(red21).divide(nir21.add(red21)).rename('NDVI21');
+var ndvi22 = nir22.subtract(red22).divide(nir22.add(red22)).rename('NDVI22');
+var ndvi23 = nir23.subtract(red23).divide(nir23.add(red23)).rename('NDVI23');
+var ndvi24 = nir24.subtract(red24).divide(nir24.add(red24)).rename('NDVI24');
+var ndvi25 = nir25.subtract(red25).divide(nir25.add(red25)).rename('NDVI25');
+var ndvi26 = nir26.subtract(red26).divide(nir26.add(red26)).rename('NDVI26');
+// Display the result and customize color palette for display
+var ndviParams = {min: -1, max: 1, palette: ['blue', 'white', 'green']};
+Map.addLayer(ndvi21, ndviParams, 'NDVI21');
+Map.addLayer(ndvi22, ndviParams, 'NDVI22');
+Map.addLayer(ndvi23, ndviParams, 'NDVI23');
+Map.addLayer(ndvi24, ndviParams, 'NDVI24');
+Map.addLayer(ndvi25, ndviParams, 'NDVI25');
+Map.addLayer(ndvi26, ndviParams, 'NDVI26');
+print('NDVI21');
+print('NDVI22');
+print('NDVI23');
+print('NDVI24');
+print('NDVI25');
+print('NDVI26');
+//CALCULATE THE DIFFERENCE BETWEEN NDVIs (We will start with 21 and 26)
+// Perform image differencing (image2 - image1)
+// Calculate the difference for each corresponding band
+var ndvidifference = ndvi26.subtract(ndvi21);
+// Define visualization parameters for the difference image
+// Adjust min/max values and palette based on the expected range of change
+var visParams = 
+{min: -1.0, //Negative values for decrease.
+max: 1.0, //Positive values for increase.
+palette: ['red', 'white', 'green']//Red for decrease, green for increase.
+};
+//Add the difference image to the map.
+Map.addLayer(ndvidifference, visParams, 'NDVI Diffenence');
+//Create a histogram NDVI difference values.
+//add a seperate hist for each park
+var ndvihist1 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 1', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist1);
+var ndvihist2 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 2', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist2);
+var ndvihist3 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 3', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist3);
+var ndvihist4 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 4', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist4);
+var ndvihist5 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 5', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist5);
+var ndvihist6 = ui.Chart.image.histogram({image:ndvidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDVI Difference Histogram Park 6', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndvihist6);
+// Calculate zonal statistics, specifically the mean and standard deviation, for the parks.
+// Define what you want to calculate, in this case mean and standard deviation.
+var zonalAOI = ee.Reducer.mean().combine({reducer2: ee.Reducer.stdDev(), sharedInputs: true});
+//Make collection of all parks for zonal statistics. (****Add other parks when ready****)
+var parks = ee.FeatureCollection([park1])
+// Calculate zonal statistics
+var ndviStats = ndvidifference.reduceRegions({collection: parks,  reducer: zonalAOI,  scale: 10});
+print(ndviStats);
+Export.table.toDrive({collection: ndviStats,  description: 'NDVI_Change_All_Parks',  fileFormat: 'CSV'});
+//Compute the Normalized Difference Moisture Index (NDMI)
+var swir21 = image21.select('B11');
+var swir22 = image22.select('B11');
+var swir23 = image23.select('B11');
+var swir24 = image24.select('B11');
+var swir25 = image25.select('B11');
+var swir26 = image26.select('B11');
+//Input the equation for NDVI
+var ndmi21 = nir21.subtract(swir21).divide(nir21.add(swir21)).rename('NDMI21');
+var ndmi22 = nir22.subtract(swir22).divide(nir22.add(swir22)).rename('NDMI22');
+var ndmi23 = nir23.subtract(swir23).divide(nir23.add(swir23)).rename('NDMI23');
+var ndmi24 = nir24.subtract(swir24).divide(nir24.add(swir24)).rename('NDMI24');
+var ndmi25 = nir25.subtract(swir25).divide(nir25.add(swir25)).rename('NDMI25');
+var ndmi26 = nir26.subtract(swir26).divide(nir26.add(swir26)).rename('NDMI26');
+// Display the result and customize color palette for display
+var ndviParams = {min: -1, max: 1, palette: ['brown', 'yellow', 'green']};
+Map.addLayer(ndmi21, ndviParams, 'NDMI21');
+Map.addLayer(ndmi22, ndviParams, 'NDMI22');
+Map.addLayer(ndmi23, ndviParams, 'NDMI23');
+Map.addLayer(ndmi24, ndviParams, 'NDMI24');
+Map.addLayer(ndmi25, ndviParams, 'NDMI25');
+Map.addLayer(ndmi26, ndviParams, 'NDMI26');
+print('NDMI21');
+print('NDMI22');
+print('NDMI23');
+print('NDMI24');
+print('NDMI25');
+print('NDMI26');
+//CALCULATE THE DIFFERENCE BETWEEN NDMIs (We will start with 21 and 26)
+// Perform image differencing (image2 - image1)
+// Calculate the difference for each corresponding band
+var ndmidifference = ndmi26.subtract(ndmi21);
+// Define visualization parameters for the difference image
+// Adjust min/max values and palette based on the expected range of change
+var visParams = 
+{min: -1.0, //Negative values for decrease.
+max: 1.0, //Positive values for increase.
+palette: ['red', 'white', 'green']//Red for decrease, green for increase.
+};
+//Add the difference image to the map.
+Map.addLayer(ndmidifference, visParams, 'NDMI Diffenence');
+//Create a histogram NDMI difference values.
+var ndmihist1 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 1', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist1);
+var ndmihist2 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 2', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist2);
+var ndmihist3 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 3', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist3);
+var ndmihist4 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 4', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist4);
+var ndmihist5 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 5', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist5);
+var ndmihist6 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 6', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist6);
+// Calculate zonal statistics, specifically the mean and standard deviation, for the parks
+var ndmiStats = ndmidifference.reduceRegions({collection: parks,  reducer: zonalAOI,  scale: 10});
+print(ndmiStats);
+// Calculate zonal statistics
+var ndviStats = ndvidifference.reduceRegions({collection: parks,  reducer: zonalAOI,  scale: 10});
+print(ndviStats);
+Export.table.toDrive({collection: ndviStats,  description: 'NDVI_Change_All_Parks',  fileFormat: 'CSV'});
+//Compute the Normalized Difference Moisture Index (NDMI)
+var swir21 = image21.select('B11');
+var swir22 = image22.select('B11');
+var swir23 = image23.select('B11');
+var swir24 = image24.select('B11');
+var swir25 = image25.select('B11');
+var swir26 = image26.select('B11');
+//Input the equation for NDVI
+var ndmi21 = nir21.subtract(swir21).divide(nir21.add(swir21)).rename('NDMI21');
+var ndmi22 = nir22.subtract(swir22).divide(nir22.add(swir22)).rename('NDMI22');
+var ndmi23 = nir23.subtract(swir23).divide(nir23.add(swir23)).rename('NDMI23');
+var ndmi24 = nir24.subtract(swir24).divide(nir24.add(swir24)).rename('NDMI24');
+var ndmi25 = nir25.subtract(swir25).divide(nir25.add(swir25)).rename('NDMI25');
+var ndmi26 = nir26.subtract(swir26).divide(nir26.add(swir26)).rename('NDMI26');
+// Display the result and customize color palette for display
+var ndviParams = {min: -1, max: 1, palette: ['brown', 'yellow', 'green']};
+Map.addLayer(ndmi21, ndviParams, 'NDMI21');
+Map.addLayer(ndmi22, ndviParams, 'NDMI22');
+Map.addLayer(ndmi23, ndviParams, 'NDMI23');
+Map.addLayer(ndmi24, ndviParams, 'NDMI24');
+Map.addLayer(ndmi25, ndviParams, 'NDMI25');
+Map.addLayer(ndmi26, ndviParams, 'NDMI26');
+print('NDMI21');
+print('NDMI22');
+print('NDMI23');
+print('NDMI24');
+print('NDMI25');
+print('NDMI26');
+//CALCULATE THE DIFFERENCE BETWEEN NDMIs (We will start with 21 and 26)
+// Perform image differencing (image2 - image1)
+// Calculate the difference for each corresponding band
+var ndmidifference = ndmi26.subtract(ndmi21);
+// Define visualization parameters for the difference image
+// Adjust min/max values and palette based on the expected range of change
+var visParams = 
+{min: -1.0, //Negative values for decrease.
+max: 1.0, //Positive values for increase.
+palette: ['red', 'white', 'green']//Red for decrease, green for increase.
+};
+//Add the difference image to the map.
+Map.addLayer(ndmidifference, visParams, 'NDMI Diffenence');
+//Create a histogram NDMI difference values.
+var ndmihist1 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 1', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist1);
+var ndmihist2 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 2', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist2);
+var ndmihist3 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 3', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist3);
+var ndmihist4 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 4', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist4);
+var ndmihist5 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 5', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist5);
+var ndmihist6 = ui.Chart.image.histogram({image:ndmidifference, region: park1, scale: 10})
+.setSeriesNames({})
+.setOptions({title: 'NDMI Difference Histogram Park 6', hAxis: {title: 'DN', titleTextStyle: {italic: false, bold: true}, }, vAxis: {title: 'Count', titleTextStyle: {italic: false, bold: true}},
+colors: ['0000ff', '008000', 'ff4500']});
+print(ndmihist6);
+// Calculate zonal statistics, specifically the mean and standard deviation, for the parks
+var ndmiStats = ndmidifference.reduceRegions({collection: parks,  reducer: zonalAOI,  scale: 10});
+print(ndmiStats);
+Export.table.toDrive({collection: ndmiStats,  description: 'NDMI_Change_All_Parks',  fileFormat: 'CSV'});
